@@ -5,6 +5,12 @@
 # load packages
 library(tidyverse)
 library(janitor)
+library(COVID19)
+
+
+gmr <- "https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv"
+wb = c("gdp"= "NY.GDP.MKTP.PP.CD")
+all = covid19(wb = wb, gmr = gmr)
 
 #### read data ####
 
@@ -76,6 +82,11 @@ ggplot(data = metro_set,
   facet_wrap(vars(metro_area))
 
 ggplot(data = country_set, 
+       mapping = aes(x = date, y = percent_change, colour = destination )) + 
+  geom_line() +
+  facet_wrap(vars(country))
+
+ggplot(data = all %>% filter(iso_alpha_3="AFG"), 
        mapping = aes(x = date, y = percent_change, colour = destination )) + 
   geom_line() +
   facet_wrap(vars(country))
