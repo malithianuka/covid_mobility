@@ -8,9 +8,19 @@ library(janitor)
 library(COVID19)
 
 
+#### read data ####
 gmr <- "https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv"
 wb = c("gdp"= "NY.GDP.MKTP.PP.CD")
 all = covid19(wb = wb, gmr = gmr)
+
+#### clean data ####
+
+# interested in policy measures
+# Covid stats
+# and how they relate to changes in mobility
+
+# based on the following test, I can see that this data set includes double entries for GMR that have country and metro area numbers separately. 
+test = all %>% filter(date=="2020-04-15", iso_alpha_3=="AFG")
 
 #### read data ####
 
