@@ -69,9 +69,23 @@ country_gmr = full_gmr %>%
   select(country, date:GDP2018) %>% 
   # mutate(metro_area = gsub(" Metropolitan Area", "", metro_area)) %>% 
   pivot_longer(retail_and_recreation:residential, names_to = "destination", values_to = "percent_change") %>% 
-  select(iso_alpha_3 = alpha_3_code, country, lat = latitude_average, long = longitude_average, GDP2018, date, destination, perc_change = percent_change)
+  select(iso_alpha_3 = alpha_3_code, country, lat = latitude_average, long = longitude_average, GDP2018, date, destination, perc_change = percent_change) %>% 
+  group_by(iso_alpha_3, destination) %>% 
+  mutate(ave_7d = rollmean(perc_change, k = 7, fill = NA)) %>% 
+  ungroup() 
 
+country_GDP = country_gmr %>% 
+  select(iso_alpha_3, country,GDP2018) %>% 
+  unique() %>% 
+  rowwise() %>% 
+  mutate(country_byGDP = factor(country))
 
+country_GDP$country_byGDP = factor(country_GDP$country_byGDP, levels = country_GDP$country_byGDP[order(desc(country_GDP$GDP2018))])
+
+arrange(country_GDP, country_byGDP)
+
+country_gmr = country_gmr %>% 
+  left_join(country_GDP)
 #### combine with covid and policy data ####
 
 # interested in policy measures
@@ -102,14 +116,43 @@ string_index = policy_data %>% filter(policy == "stringency_index") %>%
 
 
 ggplot() +
-  geom_line(data = country_gmr %>% filter(country == "Canada"),
-            mapping = aes(x=date, y=perc_change, colour = destination)) +
+  # geom_line(data = country_gmr %>% filter(country == "Canada"),
+  #           mapping = aes(x=date, y=perc_change, colour = destination)) +
   # scale_color_viridis_d() +
-  geom_bar(data = string_index %>% filter(country == "Canada"),
-            mapping = aes(x = date, y = string_index), stat = "identity") +
+  geom_area(data = string_index %>% filter(country == "Canada"),
+            mapping = aes(x = date, y = string_index, alpha=0.5)) +
+  geom_line(data = country_gmr %>% filter(country == "Canada"),
+            mapping = aes(x=date, y=ave_7d, colour = destination), size = 1) +
+  theme_pander() +
+  scale_colour_pander()
+
+
+ggplot() +
+  # geom_line(data = country_gmr %>% filter(country == "Canada"),
+  #           mapping = aes(x=date, y=perc_change, colour = destination)) +
+  # scale_color_viridis_d() +
+  geom_area(data = string_index,
+            mapping = aes(x = date, y = string_index, alpha=0.5)) +
+  geom_line(data = country_gmr %>% arrange(desc(GDP2018)),
+            mapping = aes(x=date, y=ave_7d, colour = destination)) + 
+  facet_wrap(vars(country_byGDP))+
+  theme_pander() +
+  scale_colour_pander()
+
+ggplot() +
+  # geom_line(data = country_gmr %>% filter(country == "Canada"),
+  #           mapping = aes(x=date, y=perc_change, colour = destination)) +
+  # scale_color_viridis_d() +
+  geom_area(data = policy_data %>% filter(policy==),
+            mapping = aes(x = date, y = string_index, alpha=0.5)) +
+  geom_line(data = country_gmr %>% arrange(desc(GDP2018)),
+            mapping = aes(x=date, y=ave_7d, colour = destination)) + 
+  facet_wrap(vars(country_byGDP))
+  
+  scale_y_continuous("Percent Change", sec.axis = sec_axis(~./100, name = "Stringency Index") ) +
   geom_line(policy_data %>% filter(country =="Canada"), 
             mapping = aes(x=date, y = implementation*100, linetype = policy))+
-  scale_y_continuous("Percent Change", sec.axis = sec_axis(~./100, name = "policy") )
+  scale_y_continuous("Percent Change", sec.axis = sec_axis(~./100, name = "Stringency Index") )
   # scale_colour_discrete("spectral")
 
 ggplot(data = metro_set %>% filter(metro_area=="Doha Metropolitan Area"), 
